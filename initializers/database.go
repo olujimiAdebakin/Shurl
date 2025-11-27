@@ -31,12 +31,15 @@ func ConnectToDB() {
 
 		fmt.Println(dsn)
 
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		PrepareStmt: false,
+	})
 
 	if err != nil {
 		log.Fatal("Failed to connect to the DB:", err)
 	}
 
+	
 	// Test the connection
 	sqlDB, err := DB.DB()
 	if err != nil {

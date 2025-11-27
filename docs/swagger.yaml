@@ -1,0 +1,490 @@
+basePath: /api/v1
+definitions:
+  controllers.ContextUserStruct:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      role:
+        type: string
+    type: object
+  dtos.CreateLinkRequest:
+    properties:
+      originalUrl:
+        description: '@notice The full, long URL. Required and must be a valid URL
+          format.'
+        type: string
+      shortCode:
+        description: |-
+          @notice The desired custom short code. Must be alphanumeric with hyphens and underscores.
+          Validation allows: a-z, A-Z, 0-9, hyphens (-), and underscores (_).
+        maxLength: 20
+        minLength: 4
+        type: string
+      userId:
+        minimum: 1
+        type: integer
+    required:
+    - originalUrl
+    type: object
+  dtos.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      password:
+        maxLength: 100
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  dtos.ErrorResponse:
+    properties:
+      error:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dtos.LinkResponse:
+    properties:
+      clicks:
+        description: '@notice The number of times the link has been clicked.'
+        type: integer
+      favicon:
+        description: '@notice The URL of the favicon, can be null.'
+        type: string
+      originalUrl:
+        description: '@notice The full target URL.'
+        type: string
+      shortCode:
+        description: '@notice The unique short identifier.'
+        type: string
+      userId:
+        description: '@notice The User ID this link belongs to.'
+        type: integer
+    type: object
+  dtos.LinkUpdateRequest:
+    properties:
+      isActive:
+        description: '@notice Flag to activate/deactivate the link (example field).'
+        type: boolean
+      originalUrl:
+        description: '@notice The new target URL (optional for updates).'
+        type: string
+    type: object
+  dtos.LoginResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      token:
+        type: string
+    type: object
+  dtos.LoginUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        maxLength: 100
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dtos.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@shurl.dev
+    name: API Support
+  description: A modern URL shortener API built with Go and Gin
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Shurl API
+  version: "1.0"
+paths:
+  /{shortCode}:
+    get:
+      consumes:
+      - application/json
+      description: Redirect to original URL using short code and increment clicks
+      parameters:
+      - description: Short code of the link
+        in: path
+        name: shortCode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "301":
+          description: Moved Permanently
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      summary: Redirect to original URL
+      tags:
+      - Redirect
+  /links:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all links created by authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dtos.LinkResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: Get user's links
+      tags:
+      - Links
+    post:
+      consumes:
+      - application/json
+      description: Create a new shortened URL with optional custom short code
+      parameters:
+      - description: Create link request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.CreateLinkRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.LinkResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: Create a new shortened URL
+      tags:
+      - Links
+  /links/{shortCode}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a link by short code (owner only)
+      parameters:
+      - description: Short code of the link
+        in: path
+        name: shortCode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.SuccessResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: Delete a link
+      tags:
+      - Links
+    get:
+      consumes:
+      - application/json
+      description: Retrieve link details by short code and increment click count
+      parameters:
+      - description: Short code of the link
+        in: path
+        name: shortCode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.LinkResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      summary: Get link information
+      tags:
+      - Links
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing link (owner only)
+      parameters:
+      - description: Short code of the link
+        in: path
+        name: shortCode
+        required: true
+        type: string
+      - description: Update link request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.LinkUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.LinkResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: Update a link
+      tags:
+      - Links
+  /users/login:
+    post:
+      consumes:
+      - application/json
+      description: Login with email and password to receive JWT token
+      parameters:
+      - description: Login request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.LoginUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      summary: Authenticate user and receive JWT token
+      tags:
+      - Authentication
+  /users/signup:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account with email and password
+      parameters:
+      - description: Signup request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      summary: Create a new user account
+      tags:
+      - Authentication
+  /users/validate:
+    get:
+      consumes:
+      - application/json
+      description: Validate JWT token and return authenticated user information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/controllers.ContextUserStruct'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: Verify JWT token and get user information
+      tags:
+      - Authentication
+schemes:
+- http
+- https
+securityDefinitions:
+  Bearer:
+    description: JWT token with 'Bearer ' prefix
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

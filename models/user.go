@@ -2,6 +2,13 @@ package models
 
 import "gorm.io/gorm"
 
+
+// Define role constants
+const (
+	RoleUser  = "USER"
+	RoleAdmin = "ADMIN"
+)
+
 // @title User Struct
 // @notice Represents a user account in the application.
 // This structure maps directly to the 'users' table in the database and is used by GORM.
@@ -18,7 +25,7 @@ type User struct {
 
 	// @notice The hashed password for the user's account.
 	// @dev Note: Lowercase 'password' makes this field unexported, limiting access outside the package.
-	password string
+	Password string
 
 	// @notice The access level or role of the user (e.g., USER, ADMIN).
 	// @custom:gorm:default sets the initial value; NOT NULL ensures it is always present.

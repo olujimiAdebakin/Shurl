@@ -1,121 +1,644 @@
 # **Shurl: A Modern URL Shortener API** 🔗
 
 ## Overview
-Shurl is a high-performance backend API for robust URL shortening, built with Go and leveraging the Gin web framework for routing and GORM for elegant database interactions. It provides a reliable service for generating and managing short, trackable links.
+
+Shurl is a high-performance, production-ready URL shortening service built with Go, Gin, and PostgreSQL. It provides REST API endpoints for creating, managing, and tracking shortened URLs with click analytics.
 
 ## Features
--   **Go**: Core language for a highly performant and concurrent backend.
--   **Gin Framework**: Powers a fast and efficient RESTful API.
--   **GORM**: Provides an elegant Object-Relational Mapping (ORM) for PostgreSQL, simplifying database operations.
--   **PostgreSQL**: A powerful, open-source relational database for persistent storage of links and user data.
--   **`godotenv`**: Manages environment variables for secure and flexible configuration.
--   **Short Link Generation**: Creates unique, concise short codes for long URLs.
--   **Click Tracking**: Monitors the number of times a shortened URL is accessed.
--   **User Authentication (Planned)**: Secure user management for personalized link tracking. (Based on `user.go` model)
--   **Link Management**: Allows users to create, view, and potentially manage their shortened URLs.
+
+- ✅ **User Authentication**: JWT-based authentication with secure password hashing
+- ✅ **URL Shortening**: Generate custom or random short codes for long URLs
+- ✅ **Click Tracking**: Real-time click analytics for shortened links
+- ✅ **User Management**: Create accounts, login, and manage personal links
+- ✅ **Link Management**: Full CRUD operations for links
+- ✅ **High Performance**: Built with Go for concurrent request handling
+- ✅ **RESTful API**: Clean, standardized API design
+- ✅ **Database Migrations**: Automated schema management with GORM
+- ✅ **CORS Support**: Cross-origin resource sharing enabled
+- ✅ **Swagger Documentation**: Interactive API docs at `/swagger/index.html`
 
 ## Getting Started
-To get a local copy of Shurl up and running, follow these steps.
+
+### Prerequisites
+
+- **Go** 1.16+
+- **PostgreSQL** 12+
+- **Git**
 
 ### Installation
-Clone the repository:
+
+1. Clone the repository:
+
 ```bash
 git clone https://github.com/olujimiAdebakin/Shurl.git
 cd Shurl
 ```
 
-Install Go modules:
+2. Install dependencies:
+
 ```bash
+go mod download
 go mod tidy
 ```
 
-### Environment Variables
-Create a `.env` file in the root directory of the project and populate it with the following required variables:
+3. Create `.env` file:
 
-```dotenv
-POSTGRES_HOST=localhost
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=password
-POSTGRES_DB=shurl_db
-POSTGRES_PORT=5432
-POSTGRES_SSLMODE=disable # Use 'require' or 'verify-full' for production
+```bash
+cp .env.example .env
 ```
 
-**Note**: `POSTGRES_SSLMODE` is set to `disable` for local development convenience. For production environments, it is strongly recommended to use `require` or `verify-full` for secure database connections.
+4. Configure environment variables in `.env`:
 
-### Usage
-Run the application:
+```dotenv
+# Database Configuration
+POSTGRES_HOST=your-db-host
+POSTGRES_USER=your-username
+POSTGRES_PASSWORD=your-password
+POSTGRES_DB=shurl_db
+POSTGRES_PORT=5432
+POSTGRES_SSLMODE=require
+
+# Application Configuration
+PORT=8080
+SECRET_KEY=your-secret-key-here
+
+# Environment
+GIN_MODE=debug  # Set to 'release' for production
+```
+
+5. Run database migrations:
+
+```bash
+go run ./migrations/migrate.go
+```
+
+6. Start the application:
+
 ```bash
 go run main.go
 ```
-This will start the Shurl API server. Currently, the `main.go` only initializes the database connection and environment variables. Future updates will include API routes and business logic.
 
-Once the API routes are implemented and the server is running, you can interact with it using tools like Postman, Insomnia, or `curl`.
+The server will start on `http://localhost:8080`
 
 ## API Documentation
+
 ### Base URL
-The base URL for the API will typically be `http://localhost:[PORT]` during local development, where `[PORT]` is configured in your environment variables (e.g., `APP_PORT`).
 
-### Endpoints
-*(Note: As of the current codebase, API endpoints are not yet implemented in `main.go`. This section will be populated with detailed endpoint documentation once they are defined.)*
+- **Development**: `http://localhost:8080`
+- **Production**: `https://yourdomain.com`
 
-#### Example: POST /api/v1/links
-This section would document an example endpoint for creating a short URL.
+### Response Format
 
-**Request**:
+All API responses follow this standard format:
+
+**Success Response:**
+
 ```json
 {
-  "original_url": "https://www.example.com/very/long/url/that/needs/shortening",
-  "user_id": 1
+  "success": true,
+  "data": {
+    /* response data */
+  }
 }
 ```
 
-**Response**:
+**Error Response:**
+
 ```json
 {
-  "short_code": "shrtcd",
-  "original_url": "https://www.example.com/very/long/url/that/needs/shortening",
-  "short_url": "http://localhost:8080/shrtcd",
-  "clicks": 0
+  "success": false,
+  "error": "Error message"
 }
 ```
 
-**Errors**:
--   `400 Bad Request`: Invalid input or missing `original_url`.
--   `409 Conflict`: Short code already exists (unlikely with robust generation, but possible).
--   `500 Internal Server Error`: Database error or unexpected server issue.
+---
+
+## Authentication Endpoints
+
+### Sign Up
+
+Create a new user account.
+
+**Endpoint:** `POST /api/v1/users/signup`
+
+**Request Body:**
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "SecurePassword123"
+}
+```
+
+**Response:** `201 Created`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Invalid input
+- `409 Conflict`: Email already exists
+
+---
+
+### Login
+
+Authenticate and receive JWT token.
+
+**Endpoint:** `POST /api/v1/users/login`
+
+**Request Body:**
+
+```json
+{
+  "email": "john@example.com",
+  "password": "SecurePassword123"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Invalid input
+- `401 Unauthorized`: Invalid credentials
+
+---
+
+### Validate Token
+
+Verify JWT token and get user information.
+
+**Endpoint:** `GET /api/v1/users/validate`
+
+**Headers:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "USER"
+  }
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized`: Invalid or missing token
+
+---
+
+## Link Endpoints
+
+### Create Link
+
+Create a new shortened URL.
+
+**Endpoint:** `POST /api/v1/links`
+
+**Headers:**
+
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "originalUrl": "https://github.com/olujimiAdebakin/Shurl",
+  "shortCode": "my-project"
+}
+```
+
+**Response:** `201 Created`
+
+```json
+{
+  "success": true,
+  "data": {
+    "shortCode": "my-project",
+    "originalUrl": "https://github.com/olujimiAdebakin/Shurl",
+    "clicks": 0,
+    "favicon": null,
+    "userId": 1
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Invalid input
+- `401 Unauthorized`: Missing token
+- `409 Conflict`: Short code already exists
+
+**Notes:**
+
+- `shortCode` is optional; a random one will be generated if not provided
+- `shortCode` must be 4-20 characters
+- `originalUrl` must be a valid URL
+
+---
+
+### Get Link Info
+
+Retrieve link details and increment click count.
+
+**Endpoint:** `GET /api/v1/links/:shortCode`
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "shortCode": "my-project",
+    "originalUrl": "https://github.com/olujimiAdebakin/Shurl",
+    "clicks": 5,
+    "favicon": null,
+    "userId": 1
+  }
+}
+```
+
+**Error Responses:**
+
+- `404 Not Found`: Link does not exist
+
+---
+
+### Redirect to Link
+
+Redirect to original URL and increment clicks.
+
+**Endpoint:** `GET /:shortCode`
+
+**Response:** `301 Moved Permanently`
+Redirects to the original URL
+
+**Example:**
+
+```
+GET http://localhost:8080/my-project
+→ Redirects to https://github.com/olujimiAdebakin/Shurl
+```
+
+**Error Responses:**
+
+- `404 Not Found`: Link does not exist
+
+---
+
+### Update Link
+
+Modify an existing link (owner only).
+
+**Endpoint:** `PATCH /api/v1/links/:shortCode`
+
+**Headers:**
+
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "originalUrl": "https://new-url.com"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "shortCode": "my-project",
+    "originalUrl": "https://new-url.com",
+    "clicks": 5,
+    "favicon": null,
+    "userId": 1
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Invalid input
+- `401 Unauthorized`: Missing token
+- `403 Forbidden`: Not the link owner
+- `404 Not Found`: Link does not exist
+
+---
+
+### Delete Link
+
+Delete a link (owner only).
+
+**Endpoint:** `DELETE /api/v1/links/:shortCode`
+
+**Headers:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Link deleted successfully"
+  }
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized`: Missing token
+- `403 Forbidden`: Not the link owner
+- `404 Not Found`: Link does not exist
+
+---
+
+### Get User Links
+
+Retrieve all links created by authenticated user.
+
+**Endpoint:** `GET /api/v1/links`
+
+**Headers:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "shortCode": "my-project",
+      "originalUrl": "https://github.com/olujimiAdebakin/Shurl",
+      "clicks": 5,
+      "favicon": null,
+      "userId": 1
+    },
+    {
+      "shortCode": "another-link",
+      "originalUrl": "https://example.com",
+      "clicks": 12,
+      "favicon": null,
+      "userId": 1
+    }
+  ]
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized`: Missing token
+
+---
+
+## Health Check
+
+### Health Endpoint
+
+Check API status.
+
+**Endpoint:** `GET /health`
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "ok",
+  "message": "API is running"
+}
+```
+
+---
+
+## Swagger Documentation
+
+Interactive API documentation is available at:
+
+```
+http://localhost:8080/swagger/index.html
+```
+
+To regenerate Swagger docs after code changes:
+
+```bash
+go install github.com/swaggo/swag/cmd/swag@latest
+swag init -g main.go
+```
 
 ---
 
 ## Technologies Used
 
-| Technology    | Description                                       | Link                                                       |
-| :------------ | :------------------------------------------------ | :--------------------------------------------------------- |
-| **Go**        | High-performance programming language.            | [golang.org](https://golang.org/)                          |
-| **Gin**       | HTTP web framework for Go.                        | [gin-gonic.com](https://gin-gonic.com/)                    |
-| **GORM**      | Object-Relational Mapper (ORM) for Go.            | [gorm.io](https://gorm.io/)                                |
-| **PostgreSQL**| Advanced open-source relational database.         | [postgresql.org](https://www.postgresql.org/)              |
-| **DotEnv**    | Loads environment variables from `.env` file.     | [github.com/joho/godotenv](https://github.com/joho/godotenv) |
+| Technology     | Version | Purpose           |
+| -------------- | ------- | ----------------- |
+| **Go**         | 1.16+   | Core language     |
+| **Gin**        | Latest  | Web framework     |
+| **GORM**       | v1      | ORM               |
+| **PostgreSQL** | 12+     | Database          |
+| **JWT**        | Latest  | Authentication    |
+| **Bcrypt**     | Latest  | Password hashing  |
+| **Swaggo**     | Latest  | API documentation |
+
+## Project Structure
+
+```
+Shurl/
+├── main.go                 # Application entry point
+├── go.mod                  # Module definition
+├── .env.example            # Environment variables template
+├── controllers/            # Request handlers
+│   ├── user_controllers.go
+│   └── link_controller.go
+├── models/                 # Data models
+│   ├── user.go
+│   └── link.go
+├── dtos/                   # Data transfer objects
+│   ├── user_dtos.go
+│   ├── link_dtos.go
+│   └── global_dtos.go
+├── middleware/             # Middleware functions
+│   ├── require_auth.go
+│   └── cors.go
+├── initializers/           # App initialization
+│   ├── database.go
+│   └── loadEnv.go
+└── migrations/             # Database migrations
+    └── migrate.go
+```
+
+## Development
+
+### Running in Debug Mode
+
+```bash
+go run main.go
+```
+
+### Running in Release Mode
+
+```bash
+export GIN_MODE=release
+go run main.go
+```
+
+### Testing Endpoints
+
+Using curl:
+
+```bash
+# Create link
+curl -X POST http://localhost:8080/api/v1/links \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"originalUrl":"https://example.com","shortCode":"test"}'
+
+# Redirect
+curl -L http://localhost:8080/test
+```
+
+Using Postman:
+
+1. Import the Swagger URL: `http://localhost:8080/swagger/doc.json`
+2. Or manually create requests following the API documentation above
+
+## Error Handling
+
+All errors follow a consistent format:
+
+```json
+{
+  "success": false,
+  "error": "Descriptive error message"
+}
+```
+
+Common HTTP Status Codes:
+
+- `200` - OK
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `409` - Conflict
+- `500` - Internal Server Error
+
+## Security Considerations
+
+1. **JWT Tokens**: Tokens expire after 30 days
+2. **Password Hashing**: Uses bcrypt with cost factor 10
+3. **HTTPS**: Enable in production (use reverse proxy)
+4. **CORS**: Configured for specific origins
+5. **Database**: Use SSL mode 'require' in production
+6. **Environment Variables**: Never commit `.env` file
+
+## Performance Tips
+
+- Use a CDN for shortened link redirects
+- Implement caching for frequently accessed links
+- Monitor database query performance
+- Use connection pooling for database connections
 
 ## Contributing
-We welcome contributions to Shurl! If you're interested in improving this project, please consider the following:
 
--   ⭐ Fork the repository.
--   💡 Create a new branch for your feature or bug fix.
--   ✨ Ensure your code adheres to Go best practices and includes tests where appropriate.
--   🚀 Submit a pull request with a clear description of your changes.
+Contributions are welcome! Please:
 
-## Author Info
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see LICENSE file for details.
+
+## Roadmap
+
+- [ ] Swagger/OpenAPI integration
+- [ ] API rate limiting
+- [ ] Advanced analytics dashboard
+- [ ] QR code generation
+- [ ] Link expiration dates
+- [ ] Custom domain support
+- [ ] API webhooks
+- [ ] Bulk link creation
+
+## Support
+
+For support, please:
+
+- Open an issue on GitHub
+- Contact: support@shurl.dev
+- Documentation: [Swagger Docs](http://localhost:8080/swagger/index.html)
+
+## Author
+
 **Olujimi Adebakin**
-*   LinkedIn: [linkedin.com/in/olujimiadebakin](https://linkedin.com/in/olujimiadebakin)
-*   Twitter: [@olujimiadebakin](https://twitter.com/olujimiadebakin)
-*   Portfolio: [your_portfolio_link]
+
+- LinkedIn: [linkedin.com/in/olujimiadebakin](https://www.linkedin.com/in/adebakin-olujimi-25446331b/)
+- GitHub: [@olujimiAdebakin](https://github.com/olujimiAdebakin)
+- Twitter: [@olujimiadebakin](https://twitter.com/olujimi_the_dev)
 
 ---
+
+## Status Badges
+
 [![Go Version](https://img.shields.io/github/go-mod/go-version/olujimiAdebakin/Shurl?style=flat-square)](https://golang.org/)
 [![Gin Framework](https://img.shields.io/badge/Framework-Gin-0080FF?style=flat-square&logo=go)](https://gin-gonic.com/)
 [![GORM](https://img.shields.io/badge/ORM-GORM-darkblue?style=flat-square&logo=go)](https://gorm.io/)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square)](https://github.com/olujimiAdebakin/Shurl/actions)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-[![Readme was generated by Dokugen](https://img.shields.io/badge/Readme%20was%20generated%20by-Dokugen-brightgreen)](https://www.npmjs.com/package/dokugen)
+---
+
+**Last Updated**: November 2025
